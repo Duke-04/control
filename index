@@ -8,30 +8,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0D1117;
-    --panel: #161B22;
-    --panel-border: #30363D;
-    --accent-blue: #58A6FF;
-    --accent-green: #3FB950;
-    --accent-red: #F85149;
-    --text-primary: #E6EDF3;
-    --text-secondary: #8B949E;
-    --btn-active: #238636;
-    --btn-inactive: #21262D;
+    --bg: #0D1117; --panel: #161B22; --panel-border: #30363D;
+    --accent-blue: #58A6FF; --accent-green: #3FB950; --accent-red: #F85149;
+    --text-primary: #E6EDF3; --text-secondary: #8B949E;
+    --btn-active: #238636; --btn-inactive: #21262D;
     --grid: rgba(88, 166, 255, 0.05);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    background: var(--bg);
-    font-family: 'Rajdhani', sans-serif;
-    color: var(--text-primary);
-    min-height: 100vh;
-    padding: 20px;
-    background-image: 
-      linear-gradient(var(--grid) 1px, transparent 1px),
-      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background: var(--bg); font-family: 'Rajdhani', sans-serif; color: var(--text-primary);
+    min-height: 100vh; padding: 20px;
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
     background-size: 40px 40px;
   }
 
@@ -47,29 +36,35 @@
   .mqtt-status {
     display: flex; align-items: center; gap: 10px; font-family: 'Share Tech Mono';
     font-size: 14px; padding: 8px 16px; border-radius: 20px; border: 1px solid var(--panel-border);
+    cursor: pointer; transition: 0.3s;
   }
+  .mqtt-status:hover { background: rgba(255,255,255,0.05); }
   .disconnected { color: var(--accent-red); border-color: var(--accent-red); }
   .connected { color: var(--accent-green); border-color: var(--accent-green); }
   .dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; animation: pulse 1.5s infinite; }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-  .layout-grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+  .layout-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
 
   .panel { background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
   .panel-title { font-family: 'Share Tech Mono'; font-size: 12px; color: var(--text-secondary); margin-bottom: 15px; text-transform: uppercase; border-bottom: 1px solid var(--panel-border); padding-bottom: 5px; }
 
-  .btn-group { display: flex; gap: 10px; }
-  .btn { flex: 1; background: var(--btn-inactive); color: var(--text-primary); border: 1px solid var(--panel-border); padding: 8px; border-radius: 6px; cursor: pointer; font-family: 'Rajdhani'; font-weight: 700; text-transform: uppercase; transition: all 0.3s; }
+  .btn-group { display: flex; gap: 10px; margin-bottom: 10px; }
+  .btn { flex: 1; background: var(--btn-inactive); color: var(--text-primary); border: 1px solid var(--panel-border); padding: 8px; border-radius: 6px; cursor: pointer; font-family: 'Rajdhani'; font-weight: 700; text-transform: uppercase; transition: all 0.3s; font-size: 13px; }
   .btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
   .btn.active { background: var(--btn-active); border-color: var(--accent-green); }
+  .btn.danger:hover { border-color: var(--accent-red); color: var(--accent-red); }
 
   .slider-container { display: flex; align-items: center; gap: 15px; margin-top: 15px; }
   .slider-container input[type="range"] { flex: 1; accent-color: var(--accent-blue); }
-  .slider-value { font-family: 'Share Tech Mono'; color: var(--accent-blue); font-size: 18px; min-width: 45px; }
+  .slider-value { font-family: 'Share Tech Mono'; color: var(--accent-blue); font-size: 18px; min-width: 45px; text-align: right; }
+
+  .radio-group { display: flex; flex-direction: column; gap: 10px; font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+  .radio-group label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .radio-group input[type="radio"] { accent-color: var(--accent-blue); transform: scale(1.2); }
 
   .canvas-container { width: 100%; position: relative; }
   #plantCanvas { width: 100%; height: 260px; background: var(--bg); border-radius: 6px; border: 1px solid var(--panel-border); }
-  
   .plot-canvas { width: 100%; height: 180px; display: block; }
 </style>
 </head>
@@ -80,13 +75,30 @@
       <h1>Control PID - Planta Dos Tanques</h1>
       <p>INTERFAZ WEB MQTT BASADA EN PyQt5</p>
     </div>
-    <div id="mqttStatus" class="mqtt-status disconnected">
+    <div id="mqttStatus" class="mqtt-status disconnected" onclick="reconnectMQTT()" title="Clic para reconectar">
       <div class="dot"></div><span id="statusText">Desconectado</span>
     </div>
   </div>
 
   <div class="layout-grid">
     <div class="left-col">
+      
+      <div class="panel">
+        <div class="panel-title">Estado y Control General</div>
+        
+        <div class="btn-group">
+          <button class="btn" id="btnStart" onclick="setControl(true)">Activar Control</button>
+          <button class="btn active danger" id="btnStop" onclick="setControl(false)">Desactivar</button>
+        </div>
+        <button class="btn" style="width: 100%; margin-bottom: 15px;" onclick="resetPlots()">Reset Gráficas</button>
+
+        <div class="panel-title" style="margin-top: 20px;">Tipo de Controlador PID</div>
+        <div class="radio-group">
+          <label><input type="radio" name="pidType" value="cd" checked onchange="setPIDType('cd')"> PID Continuo - Discreto</label>
+          <label><input type="radio" name="pidType" value="dd" onchange="setPIDType('dd')"> PID Discreto - Discreto</label>
+        </div>
+      </div>
+
       <div class="panel">
         <div class="panel-title">Generador de Señal (Referencia)</div>
         <div class="btn-group">
@@ -102,9 +114,10 @@
       </div>
 
       <div class="panel">
-        <div class="panel-title">Planta (Diagrama QPainter -> Canvas)</div>
+        <div class="panel-title">Planta Virtual</div>
         <canvas id="plantCanvas" width="340" height="260"></canvas>
       </div>
+
     </div>
 
     <div class="right-col">
@@ -125,167 +138,98 @@
 
 <script>
 // ==========================================
-// LÓGICA MQTT (Del Segundo TXT)
+// LÓGICA MQTT
 // ==========================================
-const brokerUrl = "wss://test.mosquitto.org:8081/mqtt"; // URL del Websocket MQTT
+const brokerUrl = "wss://test.mosquitto.org:8081/mqtt"; 
 const topicData = "planta/tanques/datos";
 const topicCmd  = "planta/tanques/cmd";
-const client = mqtt.connect(brokerUrl);
+let client = null;
 
-client.on("connect", () => {
-  document.getElementById("mqttStatus").className = "mqtt-status connected";
-  document.getElementById("statusText").innerText = "Conectado";
-  client.subscribe(topicData);
-});
-client.on("close", () => {
-  document.getElementById("mqttStatus").className = "mqtt-status disconnected";
-  document.getElementById("statusText").innerText = "Desconectado";
-});
+function connectMQTT() {
+  document.getElementById("statusText").innerText = "Conectando...";
+  client = mqtt.connect(brokerUrl);
 
-// Variables globales simulando ESP32/Simulador
-let current_h1 = 0, current_h2 = 0;
+  client.on("connect", () => {
+    document.getElementById("mqttStatus").className = "mqtt-status connected";
+    document.getElementById("statusText").innerText = "Conectado al Servidor";
+    client.subscribe(topicData);
+  });
 
-client.on("message", (topic, message) => {
-  if (topic === topicData) {
-    // Replicando el parseo del CSV: rk,yk,ek,uk,h1,h2
-    const parts = message.toString().split(',');
-    if(parts.length >= 6){
-      pushData(
-        parseFloat(parts[0]), parseFloat(parts[1]), parseFloat(parts[2]), 
-        parseFloat(parts[3]), parseFloat(parts[4]), parseFloat(parts[5])
-      );
+  client.on("close", () => {
+    document.getElementById("mqttStatus").className = "mqtt-status disconnected";
+    document.getElementById("statusText").innerText = "Desconectado";
+  });
+
+  client.on("message", (topic, message) => {
+    if (topic === topicData && controlActivo) {
+      const parts = message.toString().split(',');
+      if(parts.length >= 6){
+        pushData(parseFloat(parts[0]), parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]), parseFloat(parts[4]), parseFloat(parts[5]));
+      }
     }
-  }
-});
+  });
+}
 
+function reconnectMQTT() {
+  if(client) client.end(true);
+  connectMQTT();
+}
+
+connectMQTT(); // Conectar al iniciar
+
+// ==========================================
+// NUEVA LÓGICA DE BOTONES (Control, Reset, PID)
+// ==========================================
+let controlActivo = false;
+
+function setControl(state) {
+  controlActivo = state;
+  document.getElementById('btnStart').classList.toggle('active', state);
+  document.getElementById('btnStop').classList.toggle('active', !state);
+  if(client && client.connected) client.publish(topicCmd, `control,${state ? 'start' : 'stop'}`);
+}
+
+function resetPlots() {
+  buffers.rk.fill(0); buffers.yk.fill(0); buffers.ek.fill(0); buffers.uk.fill(0);
+  current_h1 = 0; current_h2 = 0;
+  if(client && client.connected) client.publish(topicCmd, `reset,graphs`);
+}
+
+function setPIDType(type) {
+  if(client && client.connected) client.publish(topicCmd, `pid_mode,${type}`);
+}
+
+// Lógica Generador de Señal
 function setSignal(type) {
-  document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btnSquare').classList.remove('active');
+  document.getElementById('btnRamp').classList.remove('active');
+  document.getElementById('btnSine').classList.remove('active');
+  
   if(type === 'square') document.getElementById('btnSquare').classList.add('active');
   if(type === 'ramp') document.getElementById('btnRamp').classList.add('active');
   if(type === 'sine') document.getElementById('btnSine').classList.add('active');
-  client.publish(topicCmd, `signal,${type}`);
+  
+  if(client && client.connected) client.publish(topicCmd, `signal,${type}`);
 }
 
 function updateSetpoint() {
   const val = (document.getElementById('spSlider').value / 10).toFixed(2);
   document.getElementById('spVal').innerText = val;
-  client.publish(topicCmd, `setpoint,${val}`);
+  if(client && client.connected) client.publish(topicCmd, `setpoint,${val}`);
 }
 
 // ==========================================
-// DIBUJO DE LA PLANTA (Idéntico a QPainter)
+// DIBUJO DE LA PLANTA Y GRÁFICAS
 // ==========================================
-function drawPlant() {
-  const canvas = document.getElementById('plantCanvas');
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  
-  ctx.clearRect(0, 0, W, H);
-
-  // Colores exactos del Python
-  const col_tank    = "rgb(48, 54, 61)";
-  const col_pipe    = "rgb(88, 166, 255)";
-  const col_pump    = "rgba(63, 185, 80, 0.86)";
-  const col_text    = "#E6EDF3";
-  const col_sensor  = "rgb(188, 140, 255)";
-  const col_valve   = "rgb(209, 153, 34)";
-  const col_repo    = "rgb(22, 27, 34)";
-  const border      = "#30363D";
-
-  // Repositorio
-  const repo_x = W * 0.35, repo_y = H * 0.75, repo_w = W * 0.30, repo_h = H * 0.18;
-  ctx.fillStyle = col_repo; ctx.strokeStyle = border; ctx.lineWidth = 1.5;
-  ctx.fillRect(repo_x, repo_y, repo_w, repo_h); ctx.strokeRect(repo_x, repo_y, repo_w, repo_h);
-  // Agua Repositorio
-  ctx.fillStyle = "rgba(31, 111, 235, 0.47)";
-  ctx.fillRect(repo_x + 2, repo_y + repo_h/2, repo_w - 4, repo_h/2 - 2);
-  
-  ctx.fillStyle = col_text; ctx.font = "10px Consolas";
-  ctx.fillText("Repositorio", repo_x, repo_y + repo_h + 14);
-
-  // Bomba
-  const pump_cx = repo_x - W * 0.12, pump_cy = repo_y + repo_h/2;
-  ctx.fillStyle = "rgb(20, 50, 20)"; ctx.strokeStyle = col_pump; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(pump_cx, pump_cy, 12, 0, 2*Math.PI); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = col_text; ctx.fillText("B", pump_cx - 3, pump_cy + 3);
-
-  // Tanques (1 y 2)
-  const drawTank = (tx, ty, tw, th, h_val, label) => {
-    ctx.fillStyle = col_tank; ctx.strokeStyle = border; ctx.lineWidth = 1.5;
-    ctx.fillRect(tx, ty, tw, th); ctx.strokeRect(tx, ty, tw, th);
-    
-    const fillH = th * (Math.min(8, Math.max(0, h_val)) / 8.0);
-    if(fillH > 0) {
-      let grad = ctx.createLinearGradient(tx, ty + th - fillH, tx, ty + th);
-      grad.addColorStop(0, "rgba(58, 150, 255, 0.78)");
-      grad.addColorStop(1, "rgba(20, 90, 200, 0.86)");
-      ctx.fillStyle = grad;
-      ctx.fillRect(tx + 2, ty + th - fillH, tw - 4, fillH - 1);
-    }
-    ctx.fillStyle = col_text;
-    ctx.fillText(`${label}: ${h_val.toFixed(2)} cm`, tx + 4, ty - 5);
-
-    // Sensor Ultrasónico
-    ctx.strokeStyle = col_sensor; ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(tx + tw/2 - 8, ty + 6); ctx.lineTo(tx + tw/2 + 8, ty + 6);
-    ctx.moveTo(tx + tw/2, ty + 6); ctx.lineTo(tx + tw/2, ty + 14);
-    ctx.stroke();
-  };
-
-  const t1_x = W*0.05, t1_y = H*0.12, t1_w = W*0.28, t1_h = H*0.52;
-  const t2_x = W*0.62, t2_y = H*0.12, t2_w = W*0.28, t2_h = H*0.52;
-  drawTank(t1_x, t1_y, t1_w, t1_h, current_h1, "T1");
-  drawTank(t2_x, t2_y, t2_w, t2_h, current_h2, "T2");
-
-  // Tuberías y Válvulas
-  ctx.strokeStyle = col_pipe; ctx.lineWidth = 2;
-  ctx.beginPath();
-  
-  // T1 a T2
-  const conn_y = t1_y + t1_h - 8;
-  ctx.moveTo(t1_x + t1_w, conn_y); ctx.lineTo(t2_x, conn_y);
-  
-  // T2 a Repo
-  ctx.moveTo(t2_x + t2_w/2, t2_y + t2_h); ctx.lineTo(t2_x + t2_w/2, repo_y);
-  ctx.moveTo(t2_x + t2_w/2, repo_y); ctx.lineTo(repo_x + repo_w/2, repo_y);
-  
-  // Repo a Bomba a T1
-  ctx.moveTo(repo_x, repo_y + repo_h/2); ctx.lineTo(pump_cx + 12, pump_cy);
-  ctx.moveTo(pump_cx - 12, pump_cy); ctx.lineTo(pump_cx - 12, t1_y + 4);
-  ctx.moveTo(pump_cx - 12, t1_y + 4); ctx.lineTo(t1_x + t1_w/2, t1_y + 4);
-  ctx.stroke();
-
-  // Dibujar Válvula
-  const drawValve = (vx, vy) => {
-    ctx.fillStyle = col_valve; ctx.strokeStyle = col_valve; ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(vx, vy - 6); ctx.lineTo(vx + 6, vy);
-    ctx.lineTo(vx, vy + 6); ctx.lineTo(vx - 6, vy); ctx.closePath();
-    ctx.fill(); ctx.stroke();
-  };
-  drawValve((t1_x + t1_w + t2_x) / 2, conn_y); // Válvula intermedia
-  drawValve(t2_x + t2_w/2, t2_y + t2_h + (repo_y - t2_y - t2_h)/2); // Válvula salida T2
-}
-
-// ==========================================
-// MOTOR DE GRÁFICAS Y SIMULACIÓN
-// ==========================================
+let current_h1 = 0, current_h2 = 0;
 const MAX_POINTS = 300;
 const buffers = {
   rk: new Array(MAX_POINTS).fill(0), yk: new Array(MAX_POINTS).fill(0),
   ek: new Array(MAX_POINTS).fill(0), uk: new Array(MAX_POINTS).fill(0)
 };
 
-const canvases = {
-  pos: document.getElementById('canvasPos'),
-  err: document.getElementById('canvasErr'),
-  ctrl: document.getElementById('canvasCtrl')
-};
-
-function resize() {
-  Object.values(canvases).forEach(c => { c.width = c.parentElement.clientWidth; c.height = c.parentElement.clientHeight; });
-}
+const canvases = { pos: document.getElementById('canvasPos'), err: document.getElementById('canvasErr'), ctrl: document.getElementById('canvasCtrl') };
+function resize() { Object.values(canvases).forEach(c => { c.width = c.parentElement.clientWidth; c.height = c.parentElement.clientHeight; }); }
 window.addEventListener('resize', resize); resize();
 
 function pushData(rk, yk, ek, uk, h1, h2) {
@@ -296,26 +240,39 @@ function pushData(rk, yk, ek, uk, h1, h2) {
   current_h1 = h1; current_h2 = h2;
 }
 
+function drawPlant() {
+  const ctx = document.getElementById('plantCanvas').getContext('2d');
+  const W = 340, H = 260; ctx.clearRect(0, 0, W, H);
+  
+  const col_tank = "rgb(48, 54, 61)", col_pipe = "rgb(88, 166, 255)", col_text = "#E6EDF3", border = "#30363D";
+  
+  const drawTank = (tx, ty, tw, th, h_val, label) => {
+    ctx.fillStyle = col_tank; ctx.strokeStyle = border; ctx.lineWidth = 1.5; ctx.fillRect(tx, ty, tw, th); ctx.strokeRect(tx, ty, tw, th);
+    const fillH = th * (Math.min(8, Math.max(0, h_val)) / 8.0);
+    if(fillH > 0) { ctx.fillStyle = "rgba(58, 150, 255, 0.78)"; ctx.fillRect(tx + 2, ty + th - fillH, tw - 4, fillH - 1); }
+    ctx.fillStyle = col_text; ctx.fillText(`${label}: ${h_val.toFixed(2)} cm`, tx + 4, ty - 5);
+  };
+
+  const t1_x = W*0.05, t1_y = H*0.12, t1_w = W*0.28, t1_h = H*0.52;
+  const t2_x = W*0.62, t2_y = H*0.12, t2_w = W*0.28, t2_h = H*0.52;
+  drawTank(t1_x, t1_y, t1_w, t1_h, current_h1, "T1");
+  drawTank(t2_x, t2_y, t2_w, t2_h, current_h2, "T2");
+}
+
 function drawPlot(canvas, dataBuf, color, minV, maxV, refBuf = null) {
   const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
+  const W = canvas.width, H = canvas.height; ctx.clearRect(0, 0, W, H);
 
-  // Cuadrícula
-  ctx.strokeStyle = 'rgba(88, 166, 255, 0.1)'; ctx.lineWidth = 1;
-  ctx.beginPath();
-  for(let i=0; i<4; i++) { const y = (i/4)*H; ctx.moveTo(0, y); ctx.lineTo(W, y); }
-  ctx.stroke();
+  ctx.strokeStyle = 'rgba(88, 166, 255, 0.1)'; ctx.lineWidth = 1; ctx.beginPath();
+  for(let i=0; i<4; i++) { const y = (i/4)*H; ctx.moveTo(0, y); ctx.lineTo(W, y); } ctx.stroke();
 
   const trace = (data, col, dash) => {
-    ctx.beginPath(); ctx.strokeStyle = col; ctx.lineWidth = dash ? 1.5 : 2;
-    ctx.setLineDash(dash ? [5, 5] : []);
+    ctx.beginPath(); ctx.strokeStyle = col; ctx.lineWidth = dash ? 1.5 : 2; ctx.setLineDash(dash ? [5, 5] : []);
     for (let i = 0; i < MAX_POINTS; i++) {
       const x = (i / (MAX_POINTS - 1)) * W;
       const y = H - ((Math.max(minV, Math.min(maxV, data[i])) - minV) / (maxV - minV)) * H;
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    ctx.stroke(); ctx.setLineDash([]);
+    } ctx.stroke(); ctx.setLineDash([]);
   };
 
   if(refBuf) trace(refBuf, 'rgba(230,237,243,0.5)', true);
@@ -323,7 +280,7 @@ function drawPlot(canvas, dataBuf, color, minV, maxV, refBuf = null) {
 }
 
 function renderAll() {
-  drawPlant(); // Dibuja la planta idéntica al QPainter
+  drawPlant();
   drawPlot(canvases.pos, buffers.yk, '#58A6FF', 0, 8, buffers.rk);
   drawPlot(canvases.err, buffers.ek, '#F85149', -5, 5);
   drawPlot(canvases.ctrl, buffers.uk, '#3FB950', 0, 255);
@@ -331,16 +288,16 @@ function renderAll() {
 }
 renderAll();
 
-// Modo simulación visual si no hay MQTT
+// Modo simulación visual si no hay MQTT (Funciona solo si le das a "Activar Control")
 let sim_t = 0;
 setInterval(() => {
-  if (document.getElementById("mqttStatus").classList.contains("disconnected")) {
+  if (document.getElementById("mqttStatus").classList.contains("disconnected") && controlActivo) {
     sim_t += 0.1;
     const rk = document.getElementById('spSlider').value / 10;
     const yk = rk * 0.9 + (Math.sin(sim_t)*0.2); 
     const ek = rk - yk;
     const uk = Math.max(0, Math.min(255, 120 + (ek * 10)));
-    pushData(rk, yk, ek, uk, yk, yk * 0.6); // Simulando h1 y h2
+    pushData(rk, yk, ek, uk, yk, yk * 0.6);
   }
 }, 100);
 </script>
